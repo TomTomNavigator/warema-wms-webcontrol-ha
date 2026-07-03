@@ -121,13 +121,19 @@ class Shade:
     def get_all_shades(wms_ctrl=None, time_between_cmds=0.1, num_retries=3):
         """
         Returns all shades in the WMS network which the WmsController is connected to.
-        :param num_retries: number to retry a failed command
-        :param time_between_cmds: Time between commands if multiple commands are necessary.
-        :param wms_ctrl: The WmsController to use for the connection.
         """
         wms_ctrl = WmsController() if wms_ctrl is None else wms_ctrl
+        if not wms_ctrl.rooms:
+            import time
+            time.sleep(1)
+            wms_ctrl = WmsController(wms_ctrl.target)
+            
         shutters = []
         for room in wms_ctrl.rooms:
             for channel in room.channels:
-                shutters.append(Shade(wms_ctrl, room, channel, time_between_cmds, num_retries))
+                s = Shade(wms_ctrl, room, channel, time_between_cmds, num_retries)
+                s.get_shade_state() # Initialize state synchronously to avoid race conditions
+                import time
+                time.sleep(2.0) # The WMS WebControl hardware is very slow, give it 2 seconds to recover
+                shutters.append(s)
         return shutters

@@ -5,16 +5,21 @@ from .cover import CONF_WEBCONTROL_SERVER_ADDR
 
 _LOGGER = logging.getLogger(__name__)
 
+import logging
+_LOGGER = logging.getLogger(__name__)
+
 def setup_platform(hass, config, add_devices, discovery_info=None):
     from .warema_wms import Shade, WmsController
     
+    _LOGGER.error("NUMBER PLATFORM STARTING UP!")
     if 'warema_shades' not in hass.data:
         hass.data['warema_shades'] = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
     
     shades = hass.data['warema_shades']
     
-    # We only add devices that are NOT scenes
-    add_devices(WaremaTiltNumber(s) for s in shades if not s.is_scene)
+    devices = [WaremaTiltNumber(s) for s in shades if not s.is_scene]
+    _LOGGER.error(f"NUMBER PLATFORM ADDING DEVICES: {[d.name for d in devices]}")
+    add_devices(devices)
 
 class WaremaTiltNumber(NumberEntity):
     """Representation of a Warema tilt as a Number."""
@@ -56,7 +61,13 @@ class WaremaTiltNumber(NumberEntity):
     def native_value(self) -> float:
         """Return the current value."""
         if self.shade.tilt is not None:
-            return self.shade.tilt - 127
+            val = self.shade.tilt - 127
+            # Clamp the value to prevent HA from throwing out-of-range exceptions
+            if val < -75:
+                return -75
+            if val > 75:
+                return 75
+            return val
         return None
 
     def set_native_value(self, value: float) -> None:

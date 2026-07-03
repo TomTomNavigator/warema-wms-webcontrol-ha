@@ -29,9 +29,11 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     shutters = hass.data['warema_shades']
     
     devices = []
-    for s in shutters:
-        if s.get_shade_state() and not s.is_scene:
-            devices.append(WaremaShade(s, config[CONF_UPDATE_INTERVAL]))
+    import logging
+    _LOGGER = logging.getLogger(__name__)
+    _LOGGER.error("COVER PLATFORM STARTING UP!")
+    devices = [WaremaShade(s, config[CONF_UPDATE_INTERVAL]) for s in shutters if not s.is_scene]
+    _LOGGER.error(f"COVER PLATFORM ADDING DEVICES: {[d.name for d in devices]}")
     add_devices(devices)
 
 
