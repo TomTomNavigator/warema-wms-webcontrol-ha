@@ -37,16 +37,18 @@ class WmsController:
         try:
             while True:
                 room_xml = self.send_rx_room_name_command(room_id)
-                room_name = room_xml.find('raumname').text
-                if room_name is None:
+                raumname = room_xml.find('raumname')
+                if raumname is None or raumname.text is None:
                     break
+                room_name = raumname.text
                 channels = []
                 while True:
                     channel_xml = self.send_rx_channel_info(room_id, channel_id)
-                    channel_name = channel_xml.find('kanalname').text
-                    if channel_name is None:
+                    kanalname = channel_xml.find('kanalname')
+                    if kanalname is None or kanalname.text is None:
                         channel_id = 0
                         break
+                    channel_name = kanalname.text
                     channels.append(Channel(channel_name, channel_id))
                     channel_id += 1
                 rooms.append(Room(room_name, room_id, channels))

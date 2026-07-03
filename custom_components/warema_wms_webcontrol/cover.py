@@ -22,8 +22,17 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     from .warema_wms import Shade, WmsController
-    shades = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
-    add_devices(WaremaShade(s, config[CONF_UPDATE_INTERVAL]) for s in shades)
+    
+    if 'warema_shades' not in hass.data:
+        hass.data['warema_shades'] = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
+    
+    shutters = hass.data['warema_shades']
+    
+    devices = []
+    for s in shutters:
+        if s.get_shade_state() and not s.is_scene:
+            devices.append(WaremaShade(s, config[CONF_UPDATE_INTERVAL]))
+    add_devices(devices)
 
 
 class WaremaShade(CoverEntity):

@@ -7,7 +7,11 @@ _LOGGER = logging.getLogger(__name__)
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     from .warema_wms import Shade, WmsController
-    shades = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
+    
+    if 'warema_shades' not in hass.data:
+        hass.data['warema_shades'] = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
+    
+    shades = hass.data['warema_shades']
     
     # We only add devices that are NOT scenes
     add_devices(WaremaTiltNumber(s) for s in shades if not s.is_scene)
@@ -52,8 +56,6 @@ class WaremaTiltNumber(NumberEntity):
     def native_value(self) -> float:
         """Return the current value."""
         if self.shade.tilt is not None:
-            # The Warema raw 'winkel' maps 1-to-1 with degrees, offset by 127.
-            # Example: 187 raw = 60 degrees (187 - 127).
             return self.shade.tilt - 127
         return None
 
