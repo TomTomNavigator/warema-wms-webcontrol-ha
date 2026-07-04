@@ -22,20 +22,15 @@ Copy the `custom_components/warema_wms_webcontrol` folder into your Home Assista
 
 ## Configuration
 
-Add the following to your `configuration.yaml` file, replacing the IP address with the local IP of your Warema WMS WebControl box:
+This integration supports setup via the Home Assistant UI (Config Flow):
 
-```yaml
-cover:
-  - platform: warema_wms_webcontrol
-    webcontrol_server_addr: "http://192.168.2.3"
+1. Go to **Settings** -> **Devices & Services** in Home Assistant.
+2. Click **+ Add Integration** in the bottom right corner.
+3. Search for **Warema WMS WebControl** and click on it.
+4. Enter the URL/IP address of your WebControl gateway (e.g., `http://192.168.2.3`).
+5. (Optional) Adjust the update interval if needed.
+6. Click **Submit**.
 
-button:
-  - platform: warema_wms_webcontrol
-    webcontrol_server_addr: "http://192.168.2.3"
+Your shades and scenes will automatically be discovered and added as devices/entities!
 
-number:
-  - platform: warema_wms_webcontrol
-    webcontrol_server_addr: "http://192.168.2.3"
-```
-
-Restart Home Assistant. Your devices will appear automatically!
+*(Note: Legacy setup via `configuration.yaml` is still supported as a fallback, but UI setup is highly recommended).*
