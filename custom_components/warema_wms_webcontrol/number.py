@@ -46,7 +46,7 @@ class WaremaTiltNumber(NumberEntity):
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
-        return -75
+        return 0
 
     @property
     def native_max_value(self) -> float:
@@ -69,8 +69,8 @@ class WaremaTiltNumber(NumberEntity):
         if self.shade.tilt is not None:
             val = self.shade.tilt - 127
             # Clamp the value to prevent HA from throwing out-of-range exceptions
-            if val < -75:
-                return -75
+            if val < 0:
+                return 0
             if val > 75:
                 return 75
             return val
