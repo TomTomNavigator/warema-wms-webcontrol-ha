@@ -6,5 +6,6 @@
   "issue_tracker": "https://github.com/thomasheinz/warema-wms-webcontrol-ha/issues",
   "dependencies": [],
   "codeowners": ["@thomasheinz", "@cornim"],
-  "iot_class": "local_polling"
+  "iot_class": "local_polling",
+  "config_flow": true
 }

@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mit Warema WMS WebControl verbinden",
+        "description": "Gib die URL deines Warema WMS WebControl Gateways und das Update-Intervall (in Sekunden) ein.",
+        "data": {
+          "webcontrol_server_addr": "WebControl URL",
+          "update_interval": "Update-Intervall (Sekunden)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum WebControl-Gateway fehlgeschlagen.",
+      "invalid_url": "Die angegebene URL ist ungültig.",
+      "unknown": "Unerwarteter Fehler aufgetreten"
+    },
+    "abort": {
+      "already_configured": "Gerät ist bereits konfiguriert"
+    }
+  }
+}

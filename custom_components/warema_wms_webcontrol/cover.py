@@ -8,7 +8,8 @@ from homeassistant.components.cover import (
     CoverEntity, CoverDeviceClass, CoverEntityFeature,
     ATTR_POSITION, PLATFORM_SCHEMA, ATTR_TILT_POSITION)
 
-from . import CONF_WEBCONTROL_SERVER_ADDR, CONF_UPDATE_INTERVAL, get_or_init_shades
+from .const import CONF_WEBCONTROL_SERVER_ADDR, CONF_UPDATE_INTERVAL
+from . import get_or_init_shades
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,11 +21,23 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    shades = get_or_init_shades(hass, config)
-    devices = [WaremaShade(s, config[CONF_UPDATE_INTERVAL])
+    shades = get_or_init_shades(hass, config.get(CONF_WEBCONTROL_SERVER_ADDR))
+    devices = [WaremaShade(s, config.get(CONF_UPDATE_INTERVAL, 600))
                for s in shades if not s.is_scene]
     _LOGGER.debug("Cover platform adding %d devices", len(devices))
     add_devices(devices)
+
+
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up the cover platform from a config entry."""
+    # Since discovery already happened in __init__.py, get_or_init_shades is now fast
+    server_addr = config_entry.data.get(CONF_WEBCONTROL_SERVER_ADDR)
+    shades = await hass.async_add_executor_job(get_or_init_shades, hass, server_addr)
+    
+    update_interval = config_entry.data.get(CONF_UPDATE_INTERVAL, 600)
+    devices = [WaremaShade(s, update_interval) for s in shades if not s.is_scene]
+    _LOGGER.debug("Cover platform async adding %d devices", len(devices))
+    async_add_entities(devices)
 
 
 class WaremaShade(CoverEntity):

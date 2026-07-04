@@ -2,16 +2,27 @@ import logging
 
 from homeassistant.components.number import NumberEntity
 
-from . import CONF_WEBCONTROL_SERVER_ADDR, get_or_init_shades
+from .const import CONF_WEBCONTROL_SERVER_ADDR
+from . import get_or_init_shades
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    shades = get_or_init_shades(hass, config)
+    shades = get_or_init_shades(hass, config.get(CONF_WEBCONTROL_SERVER_ADDR))
     devices = [WaremaTiltNumber(s) for s in shades if not s.is_scene]
     _LOGGER.debug("Number platform adding %d devices", len(devices))
     add_devices(devices)
+
+
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up the number platform from a config entry."""
+    server_addr = config_entry.data.get(CONF_WEBCONTROL_SERVER_ADDR)
+    shades = await hass.async_add_executor_job(get_or_init_shades, hass, server_addr)
+    
+    devices = [WaremaTiltNumber(s) for s in shades if not s.is_scene]
+    _LOGGER.debug("Number platform async adding %d devices", len(devices))
+    async_add_entities(devices)
 
 
 class WaremaTiltNumber(NumberEntity):
