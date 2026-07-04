@@ -74,7 +74,8 @@ class WaremaTiltNumber(NumberEntity):
         """Update the current value."""
         tilt_val = int(value) + 127
         _LOGGER.debug(f"Setting tilt for {self.name} to {value}° (raw: {tilt_val})")
-        self.shade.set_shade_tilt(tilt_val)
+        # The shade expects both position and tilt. We use the current position.
+        self.shade.set_shade_position(self.shade.position, tilt_val)
 
     def update(self):
         """Update the shade state."""
