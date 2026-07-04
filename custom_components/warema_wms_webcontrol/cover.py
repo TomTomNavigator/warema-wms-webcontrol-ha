@@ -128,15 +128,15 @@ class WaremaShade(CoverEntity):
 
     def open_cover(self, **kwargs):
         self.force_update_until = datetime.now() + timedelta(seconds=15)
-        self.shade.set_shade_position(0, self.tilt)
+        self.shade.set_shade_position(0, self.shade.tilt)
 
     def close_cover(self, **kwargs):
         self.force_update_until = datetime.now() + timedelta(seconds=15)
-        self.shade.set_shade_position(100, self.tilt)
+        self.shade.set_shade_position(100, self.shade.tilt)
 
     def set_cover_position(self, **kwargs):
         self.force_update_until = datetime.now() + timedelta(seconds=15)
-        self.shade.set_shade_position(100 - kwargs[ATTR_POSITION], self.tilt)
+        self.shade.set_shade_position(100 - kwargs[ATTR_POSITION], self.shade.tilt)
 
     def set_cover_tilt_position(self, **kwargs):
         tilt = kwargs.get(ATTR_TILT_POSITION)
