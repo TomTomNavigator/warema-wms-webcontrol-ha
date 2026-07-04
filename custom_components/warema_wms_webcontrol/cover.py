@@ -8,73 +8,54 @@ from homeassistant.components.cover import (
     CoverEntity, CoverDeviceClass, CoverEntityFeature,
     ATTR_POSITION, PLATFORM_SCHEMA, ATTR_TILT_POSITION)
 
+from . import CONF_WEBCONTROL_SERVER_ADDR, CONF_UPDATE_INTERVAL, get_or_init_shades
+
 _LOGGER = logging.getLogger(__name__)
 
-#TODO Should be moved to homeassistant.const
-CONF_WEBCONTROL_SERVER_ADDR = 'webcontrol_server_addr'
-CONF_UPDATE_INTERVAL = 'update_interval'
-
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_WEBCONTROL_SERVER_ADDR, default='http://webcontrol.local'): cv.url,
+    vol.Optional(CONF_WEBCONTROL_SERVER_ADDR,
+                 default='http://webcontrol.local'): cv.url,
     vol.Optional(CONF_UPDATE_INTERVAL, default=600): cv.positive_int
 })
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    from .warema_wms import Shade, WmsController
-    import threading
-    
-    if 'warema_shades_lock' not in hass.data:
-        hass.data['warema_shades_lock'] = threading.Lock()
-        
-    with hass.data['warema_shades_lock']:
-        if 'warema_shades' not in hass.data:
-            hass.data['warema_shades'] = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
-    
-    shutters = hass.data['warema_shades']
-    
-    devices = []
-    import logging
-    _LOGGER = logging.getLogger(__name__)
-    _LOGGER.error("COVER PLATFORM STARTING UP!")
-    devices = [WaremaShade(s, config[CONF_UPDATE_INTERVAL]) for s in shutters if not s.is_scene]
-    _LOGGER.error(f"COVER PLATFORM ADDING DEVICES: {[d.name for d in devices]}")
+    shades = get_or_init_shades(hass, config)
+    devices = [WaremaShade(s, config[CONF_UPDATE_INTERVAL])
+               for s in shades if not s.is_scene]
+    _LOGGER.debug("Cover platform adding %d devices", len(devices))
     add_devices(devices)
 
 
 class WaremaShade(CoverEntity):
-    """Represents a warema shade"""
+    """Represents a Warema shade."""
 
     def __init__(self, shade, update_interval: int):
         self.shade = shade
-        self.room = shade.get_room_name()
-        self.channel = shade.get_channel_name()
-        self.position = 0
-        self.tilt = None
-        self.last_position = self.position
-        self.is_moving = False
-        self.state_last_updated = datetime.now()
-        self.next_state_upate = datetime.now()
-        '''This is needed because, when a move is triggered by HA, sometimes the next status update
-        still reports 'not moving' because shitty warema hasn't caught up with reality yet
-        and then the next update is delayed until for update_interval seconds'''
+        self.last_position = shade.position
+        self.next_state_update = datetime.now()
+        # After triggering a move, force frequent updates for 15 seconds
+        # so the UI reflects the new state quickly even though the slow
+        # hardware might not report 'is_moving' immediately.
         self.force_update_until = datetime.now()
         self.update_interval = update_interval
 
     def update(self, force=False):
-        if datetime.now() > self.next_state_upate or self.is_moving\
-                or datetime.now() < self.force_update_until or force:
-            self.last_position = self.position
-            self.position, self.tilt, self.is_moving, self.state_last_updated = \
-                self.shade.get_shade_state(True)
-            if self.state_last_updated:
-                self.next_state_upate = \
-                    self.state_last_updated \
+        if (datetime.now() > self.next_state_update
+                or self.shade.is_moving
+                or datetime.now() < self.force_update_until
+                or force):
+            self.last_position = self.shade.position
+            self.shade.get_shade_state(True)
+            if self.shade.state_last_updated:
+                self.next_state_update = (
+                    self.shade.state_last_updated
                     + timedelta(seconds=self.update_interval)
-            _LOGGER.debug('Update performed for {}'.format(self.name))
+                )
+            _LOGGER.debug('Update performed for %s', self.name)
         else:
-            _LOGGER.debug('Update skipped for {}. Next update {}'
-                          .format(self.name, self.next_state_upate))
+            _LOGGER.debug('Update skipped for %s. Next update %s',
+                          self.name, self.next_state_update)
 
     @property
     def device_class(self):
@@ -82,49 +63,44 @@ class WaremaShade(CoverEntity):
 
     @property
     def supported_features(self):
-        features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.SET_POSITION
-        if self.tilt is not None:
+        features = (CoverEntityFeature.OPEN
+                     | CoverEntityFeature.CLOSE
+                     | CoverEntityFeature.SET_POSITION)
+        if self.shade.tilt is not None:
             features |= CoverEntityFeature.SET_TILT_POSITION
         return features
 
     @property
     def unique_id(self):
-        return 'warema_shade' + self.name
+        return f"warema_shade_{self.shade.room.id}_{self.shade.channel.id}"
 
     @property
     def name(self):
-        return "{}:{}".format(self.room, self.channel)
+        return f"{self.shade.get_room_name()}:{self.shade.get_channel_name()}"
 
     @property
     def current_cover_position(self):
-        return 100 - self.position
+        return 100 - self.shade.position
 
     @property
     def current_cover_tilt_position(self):
-        if self.tilt is not None:
-            return round(self.tilt * 100 / 255)
+        if self.shade.tilt is not None:
+            return round(self.shade.tilt * 100 / 255)
         return None
 
     @property
     def is_opening(self):
-        if self.is_moving and self.last_position > self.position:
-            return True
-        else:
-            return False
+        return (self.shade.is_moving
+                and self.last_position > self.shade.position)
 
     @property
     def is_closing(self):
-        if self.is_moving and self.last_position < self.position:
-            return True
-        else:
-            return False
+        return (self.shade.is_moving
+                and self.last_position < self.shade.position)
 
     @property
     def is_closed(self):
-        if not self.is_moving and self.position == 100:
-            return True
-        else:
-            return False
+        return not self.shade.is_moving and self.shade.position == 100
 
     def open_cover(self, **kwargs):
         self.force_update_until = datetime.now() + timedelta(seconds=15)
@@ -136,11 +112,12 @@ class WaremaShade(CoverEntity):
 
     def set_cover_position(self, **kwargs):
         self.force_update_until = datetime.now() + timedelta(seconds=15)
-        self.shade.set_shade_position(100 - kwargs[ATTR_POSITION], self.shade.tilt)
+        self.shade.set_shade_position(
+            100 - kwargs[ATTR_POSITION], self.shade.tilt)
 
     def set_cover_tilt_position(self, **kwargs):
         tilt = kwargs.get(ATTR_TILT_POSITION)
         if tilt is not None:
             self.force_update_until = datetime.now() + timedelta(seconds=15)
             tilt_val = round(tilt * 255 / 100)
-            self.shade.set_shade_position(100 - self.current_cover_position, tilt_val)
+            self.shade.set_shade_position(self.shade.position, tilt_val)

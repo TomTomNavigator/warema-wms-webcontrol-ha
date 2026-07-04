@@ -1,27 +1,17 @@
 import logging
-import voluptuous as vol
 
-import homeassistant.helpers.config_validation as cv
 from homeassistant.components.button import ButtonEntity
-from .cover import CONF_WEBCONTROL_SERVER_ADDR
+
+from . import CONF_WEBCONTROL_SERVER_ADDR, get_or_init_shades
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    from .warema_wms import Shade, WmsController
-    import threading
-    
-    if 'warema_shades_lock' not in hass.data:
-        hass.data['warema_shades_lock'] = threading.Lock()
-        
-    with hass.data['warema_shades_lock']:
-        if 'warema_shades' not in hass.data:
-            hass.data['warema_shades'] = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
-    
-    shades = hass.data['warema_shades']
-    
-    # We only add devices that are scenes
-    add_devices(WaremaSceneButton(s) for s in shades if s.is_scene)
+    shades = get_or_init_shades(hass, config)
+    devices = [WaremaSceneButton(s) for s in shades if s.is_scene]
+    _LOGGER.debug("Button platform adding %d devices", len(devices))
+    add_devices(devices)
 
 
 class WaremaSceneButton(ButtonEntity):
@@ -38,9 +28,10 @@ class WaremaSceneButton(ButtonEntity):
     @property
     def name(self):
         """Return the name of the scene."""
-        return f"{self.shade.get_room_name()} {self.shade.get_channel_name()}"
+        return (f"{self.shade.get_room_name()} "
+                f"{self.shade.get_channel_name()}")
 
     def press(self) -> None:
         """Press the button to activate the scene."""
-        _LOGGER.debug(f"Activating scene: {self.name}")
+        _LOGGER.debug("Activating scene: %s", self.name)
         self.shade.play_scene()

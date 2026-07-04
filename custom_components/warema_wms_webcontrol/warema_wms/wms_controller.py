@@ -73,11 +73,22 @@ class WmsController:
 
     def _send_command(self, cmd, additional_str=''):
         cc, ts = self._increment()
-        params = {GET_PARAM1: CMD_PREFIX + format(cc, '02x') + cmd + additional_str, GET_PARAM2: str(ts)}
-        r = requests.get(urljoin(self.target, ENDPOINT), params=params, timeout=10)
-        logger.debug("Sending request: {}".format(r.request.path_url))
-        logger.debug("Recieved response: {}".format(r.text))
-        return ElemTree.fromstring(r.text)
+        params = {
+            GET_PARAM1: CMD_PREFIX + format(cc, '02x') + cmd + additional_str,
+            GET_PARAM2: str(ts)
+        }
+        try:
+            r = requests.get(
+                urljoin(self.target, ENDPOINT), params=params, timeout=10
+            )
+            logger.debug("Sending request: %s", r.request.path_url)
+            logger.debug("Received response: %s", r.text)
+            return ElemTree.fromstring(r.text)
+        except requests.exceptions.RequestException:
+            logger.error(
+                "Failed to communicate with WebControl at %s", self.target
+            )
+            raise
 
     def send_rx_lang_command(self):
         return self._send_command(RX_LANG)
@@ -86,28 +97,51 @@ class WmsController:
         return self._send_command(RX_ROOM_NAME, format(room_id, '02x'))
 
     def send_rx_channel_info(self, room_id, channel_id):
-        return self._send_command(RX_CHANNAL_INFO, format(room_id, '02x') + format(channel_id, '02x'))
+        return self._send_command(
+            RX_CHANNAL_INFO,
+            format(room_id, '02x') + format(channel_id, '02x')
+        )
 
     def send_rx_shade_state(self, room_id, channel_id):
-        return self._send_command(RX_SHADE_STATE, format(room_id, '02x') + format(channel_id, '02x') + '01')
+        return self._send_command(
+            RX_SHADE_STATE,
+            format(room_id, '02x') + format(channel_id, '02x') + '01'
+        )
 
-    def send_tx_move_shade(self, room_id, channel_id, new_shade_pos, new_tilt_pos=255):
-        return self._send_command(TX_MOVE_SHADE, format(room_id, '02x') + format(channel_id, '02x')
-                                  + SHADE_POSITION.format(format(new_shade_pos, '02x'), format(new_tilt_pos, '02x'), 'ff'))
+    def send_tx_move_shade(self, room_id, channel_id, new_shade_pos,
+                           new_tilt_pos=255):
+        return self._send_command(
+            TX_MOVE_SHADE,
+            format(room_id, '02x') + format(channel_id, '02x')
+            + SHADE_POSITION.format(
+                format(new_shade_pos, '02x'),
+                format(new_tilt_pos, '02x'), 'ff')
+        )
 
     def send_tx_play_scene(self, room_id, channel_id):
-        return self._send_command(TX_MOVE_SHADE, format(room_id, '02x') + format(channel_id, '02x') + '08ffffffff')
+        return self._send_command(
+            TX_MOVE_SHADE,
+            format(room_id, '02x') + format(channel_id, '02x')
+            + '08ffffffff'
+        )
 
     def send_rx_move_shade(self, room_id, channel_id):
         """
-        This cmd is send out by the JS app of the web control server after the cmd to set a new shade position
-        but seems to serve no purpose. (Response always contains feedback=0)
+        This cmd is send out by the JS app of the web control server after
+        the cmd to set a new shade position but seems to serve no purpose.
+        (Response always contains feedback=0)
         :return: Parsed xml of the response as an xml.etree.ElementTree
         """
-        return self._send_command(RX_SHADE_STATE, format(room_id, '02x') + format(channel_id, '02x') + '00')
+        return self._send_command(
+            RX_SHADE_STATE,
+            format(room_id, '02x') + format(channel_id, '02x') + '00'
+        )
 
     def send_rx_check_ready(self, room_id=0, channel_id=0):
-        return self._send_command(RX_CHECK_READY, format(room_id, '02x') + format(channel_id, '02x'))
+        return self._send_command(
+            RX_CHECK_READY,
+            format(room_id, '02x') + format(channel_id, '02x')
+        )
 
 
 class Room:
