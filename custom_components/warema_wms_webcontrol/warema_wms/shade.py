@@ -89,8 +89,8 @@ class Shade:
             self._try_cmd_n_times(lambda: self.wms_ctrl.send_rx_check_ready(self.room.id, self.channel.id),
                                   self.num_retries)
             time.sleep(self.time_between_cmds)
-            tilt_val = 255 if new_tilt is None else new_tilt
-            self.wms_ctrl.send_tx_move_shade(self.room.id, self.channel.id, new_position * 2, tilt_val)
+            tilt_val = 255 if new_tilt is None else int(new_tilt)
+            self.wms_ctrl.send_tx_move_shade(self.room.id, self.channel.id, int(new_position * 2), tilt_val)
             # This cmd is sent by the JS app of the web control server but its purpose is unclear and the feedback
             # is always 0
             # self.wms_ctrl.send_rx_move_shutter(self.room.id, self.channel.id)
