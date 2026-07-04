@@ -42,8 +42,5 @@ class WaremaSceneButton(ButtonEntity):
 
     def press(self) -> None:
         """Press the button to activate the scene."""
-        # Typically scenes on WebControl are activated by sending a move command (position 100 or 0).
-        # Assuming sending TX_MOVE_SHADE with some parameters triggers it.
-        # We will use set_shade_position(100) which triggers the TX_MOVE_SHADE packet.
         _LOGGER.debug(f"Activating scene: {self.name}")
-        self.shade.set_shade_position(100)
+        self.shade.play_scene()

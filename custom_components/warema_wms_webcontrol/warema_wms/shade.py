@@ -102,6 +102,21 @@ class Shade:
                        .format(self.room.name, self.channel.name, new_position))
         return False
 
+    def play_scene(self):
+        """
+        Activates the scene on this channel.
+        """
+        for _ in range(self.num_retries):
+            self._try_cmd_n_times(lambda: self.wms_ctrl.send_rx_check_ready(self.room.id, self.channel.id),
+                                  self.num_retries)
+            time.sleep(self.time_between_cmds)
+            self.wms_ctrl.send_tx_play_scene(self.room.id, self.channel.id)
+            # WebControl immediately executes scenes, no need to wait for moving state
+            return True
+        logger.warning("Scene {}:{} could not be activated"
+                       .format(self.room.name, self.channel.name))
+        return False
+
     def _try_cmd_n_times(self, cmd, n=3):
         for i in range(n):
             ret = cmd()

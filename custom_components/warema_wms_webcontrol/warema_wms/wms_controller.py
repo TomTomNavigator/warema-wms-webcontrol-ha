@@ -95,6 +95,9 @@ class WmsController:
         return self._send_command(TX_MOVE_SHADE, format(room_id, '02x') + format(channel_id, '02x')
                                   + SHADE_POSITION.format(format(new_shade_pos, '02x'), format(new_tilt_pos, '02x'), 'ff'))
 
+    def send_tx_play_scene(self, room_id, channel_id):
+        return self._send_command(TX_MOVE_SHADE, format(room_id, '02x') + format(channel_id, '02x') + '08ffffffff')
+
     def send_rx_move_shade(self, room_id, channel_id):
         """
         This cmd is send out by the JS app of the web control server after the cmd to set a new shade position
