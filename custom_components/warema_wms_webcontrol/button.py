@@ -9,9 +9,14 @@ _LOGGER = logging.getLogger(__name__)
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     from .warema_wms import Shade, WmsController
+    import threading
     
-    if 'warema_shades' not in hass.data:
-        hass.data['warema_shades'] = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
+    if 'warema_shades_lock' not in hass.data:
+        hass.data['warema_shades_lock'] = threading.Lock()
+        
+    with hass.data['warema_shades_lock']:
+        if 'warema_shades' not in hass.data:
+            hass.data['warema_shades'] = Shade.get_all_shades(WmsController(config[CONF_WEBCONTROL_SERVER_ADDR]), time_between_cmds=0.5)
     
     shades = hass.data['warema_shades']
     
