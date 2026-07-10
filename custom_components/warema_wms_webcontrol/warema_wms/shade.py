@@ -59,7 +59,9 @@ class Shade:
             self.is_moving = shutter_xml.find('fahrt').text != '0'
             self.position = int(shutter_xml.find('position').text) / 2
             winkel_elem = shutter_xml.find('winkel')
-            if winkel_elem is not None:
+            # Only update tilt from hardware if not moving. During movement, the hardware
+            # mechanically closes the slats (e.g. to 75°), which causes confusing jumps in the UI.
+            if winkel_elem is not None and not self.is_moving:
                 self.tilt = int(winkel_elem.text)
             self.state_last_updated = datetime.now()
             return True
