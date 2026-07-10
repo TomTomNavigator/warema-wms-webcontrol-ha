@@ -98,7 +98,8 @@ class WaremaShade(CoverEntity):
     @property
     def current_cover_tilt_position(self):
         if self.shade.tilt is not None:
-            return round(self.shade.tilt * 100 / 255)
+            # Map Warema angle (-90 to +90) to HA tilt (0 to 100)
+            return round((self.shade.tilt + 90) * 100 / 180)
         return None
 
     @property
@@ -117,7 +118,8 @@ class WaremaShade(CoverEntity):
 
     def open_cover(self, **kwargs):
         self.force_update_until = datetime.now() + timedelta(seconds=15)
-        self.shade.set_shade_position(0, self.shade.tilt)
+        tilt = -75 if self.shade.tilt is not None else None
+        self.shade.set_shade_position(0, tilt)
 
     def close_cover(self, **kwargs):
         self.force_update_until = datetime.now() + timedelta(seconds=15)
@@ -132,5 +134,6 @@ class WaremaShade(CoverEntity):
         tilt = kwargs.get(ATTR_TILT_POSITION)
         if tilt is not None:
             self.force_update_until = datetime.now() + timedelta(seconds=15)
-            tilt_val = round(tilt * 255 / 100)
+            # Map HA tilt (0 to 100) back to Warema angle (-90 to +90)
+            tilt_val = round((tilt * 180 / 100) - 90)
             self.shade.set_shade_position(self.shade.position, tilt_val)
