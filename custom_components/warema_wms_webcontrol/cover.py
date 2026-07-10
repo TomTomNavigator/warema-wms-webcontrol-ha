@@ -58,8 +58,14 @@ class WaremaShade(CoverEntity):
                 or self.shade.is_moving
                 or datetime.now() < self.force_update_until
                 or force):
+            was_moving = self.shade.is_moving
             self.last_position = self.shade.position
             self.shade.get_shade_state(True)
+            
+            if was_moving and not self.shade.is_moving:
+                # Shade just stopped moving, force updates for 15s to catch final tilt
+                self.force_update_until = datetime.now() + timedelta(seconds=15)
+                
             if self.shade.state_last_updated:
                 self.next_state_update = (
                     self.shade.state_last_updated
