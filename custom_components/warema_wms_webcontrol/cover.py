@@ -64,8 +64,8 @@ class WaremaShade(CoverEntity):
             
             if was_moving and not self.shade.is_moving:
                 # Shade just stopped moving. Hardware might still be doing a mechanical tilt adjustment.
-                # Home Assistant polls every 30s. Force updates for 45s to ensure the next HA poll hits the hardware!
-                self.force_update_until = datetime.now() + timedelta(seconds=45)
+                # Home Assistant polls every 30s. Force updates for 30s to ensure exactly one post-movement poll.
+                self.force_update_until = datetime.now() + timedelta(seconds=30)
                 
             if self.shade.state_last_updated:
                 self.next_state_update = (
