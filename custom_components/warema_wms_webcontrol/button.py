@@ -45,4 +45,13 @@ class WaremaSceneButton(ButtonEntity):
     def press(self) -> None:
         """Press the button to activate the scene."""
         _LOGGER.debug("Activating scene: %s", self.name)
+        
+        # When a scene is activated, we don't know exactly which shades move.
+        # Optimistically set all shades in the same room to 'moving' so that 
+        # Home Assistant starts fast-polling them and the UI updates quickly.
+        if hasattr(self, 'hass') and 'warema_shades' in self.hass.data:
+            for s in self.hass.data['warema_shades']:
+                if s.room.id == self.shade.room.id and not s.is_scene:
+                    s.is_moving = True
+                    
         self.shade.play_scene()
